@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "wdev": "next dev",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
