@@ -1,98 +1,69 @@
 # Mesbah Matrix
 
-Your All-in-One Personal Dashboard and Life OS, designed to be a central hub for productivity, learning, and personal growth.
+![Status: Under development](https://img.shields.io/badge/status-under_development-orange)
 
-![Mesbah Matrix Screenshot](public/imgs/screenshot.png) <!-- Add a screenshot of your project here -->
+A customizable personal dashboard for productivity, learning, and daily routines. Arrange draggable, resizable widgets and open dedicated tools for tasks, focus, calendars, bookmarks, drawing, and inspiration.
 
-## About The Project
+[Source](https://github.com/lodaq/mesbah-matrix)
 
-Mesbah Matrix is a comprehensive, widget-based dashboard built with modern web technologies. It provides a suite of tools to help you organize your tasks, manage your time, and find inspiration, all in one place.
+The previous deployment at `https://mesbah-matrix.vercel.app` returned HTTP 500 on 2026-11-06. No working public website is currently advertised.
 
-### Key Features:
+## Features
 
-- **Productivity Suite**: Includes a Kanban board, a task manager, a calendar, a focus timer, and an Eisenhower Matrix.
-- **Inspiration & Faith**: Features sections for Quran, Azkar (Islamic remembrances), daily reminders, and quotes.
-- **Creative Tools**: A digital canvas for sketching ideas and a "Portalio" for managing links.
-- **Customizable Dashboard**: A dynamic grid layout with a widget slider and a floating dock for easy navigation.
-- **User Accounts**: Personalized experience with user accounts and settings.
+- A configurable grid with widget placement, resizing, locking, and removal.
+- Tasks, Kanban, calendar, focus timer, and an Eisenhower Matrix.
+- A drawing canvas and Portalio bookmark workspace.
+- Quran, Azkar, daily reminders, quotes, and media widgets.
+- Account integration through Kinde and data services backed by Firebase.
 
-### Tabs Overview
+This project is under development. Some routes and integrations depend on configured external services; the presence of a tool in the interface does not establish production readiness.
 
-- **The Grid**: Your personal, customizable workspace. It features a dynamic grid where you can add, remove, resize, and rearrange various widgets to create a dashboard that fits your needs. It's the central hub where you can get an at-a-glance view of your most important information.
-- **Account**: Manage your user account settings and profile.
-- **Analytics**: View statistics and insights about your activity.
-- **Azkar**: Access a collection of Islamic remembrances.
-- **Calendar**: Keep track of your events and appointments.
-- **Canvas**: A digital whiteboard for sketching and brainstorming.
-- **Daily Reminders**: Set and receive daily reminders.
-- **Focus**: A timer to help you concentrate on your work.
-- **Kanban**: A board to visualize and manage your workflow.
-- **Matrix**: The Eisenhower Matrix for prioritizing tasks.
-- **Portalio**: A place to manage and organize your links.
-- **Quotes**: A collection of inspiring quotes.
-- **Quran**: Read and listen to the Holy Quran.
-- **Settings**: Configure the application to your preferences.
-- **Tasks**: A simple to-do list to manage your tasks.
+## Stack
 
-## Built With
+Next.js 16, React 19, TypeScript, Tailwind CSS, shadcn/Radix UI, Zustand, Firebase, Kinde, and react-grid-layout.
 
-- [Next.js](https://nextjs.org/) - React Framework
-- [TypeScript](https://www.typescriptlang.org/) - Typed JavaScript
-- [Tailwind CSS](https://tailwindcss.com/) - Utility-First CSS Framework
-- [shadcn/ui](https://ui.shadcn.com/) - Re-usable components
-- [Firebase](https://firebase.google.com/) - Backend Platform (Auth, Firestore, etc.)
-- [Zustand](https://github.com/pmndrs/zustand) - State Management
+## Run locally
 
-## Getting Started
-
-To get a local copy up and running, follow these simple steps.
-
-### Prerequisites
-
-- Node.js v18+
-- `pnpm` package manager
+Use Node.js 20.9 or newer and pnpm.
 
 ```sh
-npm install -g pnpm
+git clone https://github.com/lodaq/mesbah-matrix.git
+cd mesbah-matrix
+pnpm install
+pnpm dev
 ```
 
-- A Firebase project.
+Open http://localhost:3000. Configure your own Firebase project in an untracked `.env.local`:
 
-### Installation
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=
+NEXT_PUBLIC_QUOTES_API=
+```
 
-1.  **Clone the repo**
-    ```sh
-    git clone https://github.com/your_username/mesbah-matrix.git
-    cd mesbah-matrix
-    ```
-2.  **Install PNPM packages**
-    ```sh
-    pnpm install
-    ```
-3.  **Set up environment variables**
-    - Create a `.env` file in the root of the project.
-    - Add your Firebase configuration keys. You can get these from your Firebase project settings.
-    ```env
-    # Firebase
-    NEXT_PUBLIC_FIREBASE_API_KEY=
-    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-    NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-    NEXT_PUBLIC_FIREBASE_APP_ID=
-    ```
-4.  **Run the development server**
-    ```sh
-    pnpm dev
-    ```
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Account routes also need Kinde configuration for the local app: `KINDE_CLIENT_ID`, `KINDE_CLIENT_SECRET`, `KINDE_ISSUER_URL`, `KINDE_SITE_URL`, `KINDE_POST_LOGOUT_REDIRECT_URL`, and `KINDE_POST_LOGIN_REDIRECT_URL`. Register matching callback URLs with Kinde. Set only public client configuration in `NEXT_PUBLIC_*`; never expose server secrets through those variables.
 
-## License
+## Development
 
-Distributed under the MIT License. See `LICENSE` for more information.
+```sh
+pnpm check
+pnpm exec tsc --noEmit
+pnpm build
+pnpm start
+```
 
-## Contact
+- `app/_components/`: dashboard grid and widgets.
+- `app/`: tool routes, layouts, and account integration.
+- `lib/`: Firebase setup, data access, and shared behavior.
+- `components/`: reusable interface components.
 
-Khalid Mesbah - [@your_twitter](https://twitter.com/your_twitter) - your_email@example.com
+Environment files and local account data are not source assets and must stay out of commits.
 
-Project Link: [https://github.com/your_username/mesbah-matrix](https://github.com/your_username/mesbah-matrix)
+## Known verification blockers
+
+As checked on 2026-11-06, TypeScript 7 rejects the existing `baseUrl` compiler option, and `pnpm check` reports existing lint/format findings. These need resolution before a clean release build can be claimed.

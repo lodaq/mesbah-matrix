@@ -15,7 +15,6 @@ const nextConfig: NextConfig = {
       dynamic: 60,
     },
     globalNotFound: true,
-    clientSegmentCache: true,
   },
   images: {
     remotePatterns: [
@@ -42,6 +41,10 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'plus.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**',
       },
     ],
   },

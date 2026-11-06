@@ -27,7 +27,6 @@ import {
   DefaultStylePanelContent,
   DefaultToolbar,
   DefaultToolbarContent,
-  DefaultTopPanel,
   DefaultZoomMenu,
   DefaultZoomMenuContent,
   type Editor,
@@ -389,7 +388,7 @@ const customComponents: TLComponents = {
   Toolbar: CustomToolbar,
   ZoomMenu: CustomZoomMenu,
   SharePanel: DefaultSharePanel,
-  TopPanel: DefaultTopPanel,
+  TopPanel: null,
   HelperButtons: SlidesPanel,
   Minimap: null,
 };

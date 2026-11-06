@@ -2,8 +2,15 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { Frame, Lock, LockOpen, Move, X } from 'lucide-react';
-import { useEffect } from 'react';
-import { type Layout, type Layouts, Responsive, WidthProvider } from 'react-grid-layout';
+import { useEffect, useMemo } from 'react';
+import {
+  type Compactor,
+  type Layout,
+  type LayoutItem,
+  type ResponsiveLayouts,
+  ResponsiveGridLayout,
+  getCompactor,
+} from 'react-grid-layout';
 import CloudLoader from '@/components/cloud-loader';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { getWidgets } from '@/lib/server-actions/widgets';
@@ -14,8 +21,6 @@ import 'react-resizable/css/styles.css';
 import { Button } from '@/components/ui/button';
 import FloatingDock from './floating-dock';
 import Widget from './widget';
-
-const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 export default function GridLayout({ isAuthenticated }: { isAuthenticated: boolean }) {
   const {
@@ -32,6 +37,13 @@ export default function GridLayout({ isAuthenticated }: { isAuthenticated: boole
     setDroppingItem,
   } = useWidgetsStore();
 
+  // Replaces compactType / preventCollision / allowOverlap props, which are
+  // now grouped behind a single `compactor` object.
+  const compactor: Compactor = useMemo(
+    () => getCompactor(compactType, false, !compactType),
+    [compactType],
+  );
+
   const {
     data: queryData,
     isLoading,
@@ -42,11 +54,6 @@ export default function GridLayout({ isAuthenticated }: { isAuthenticated: boole
     enabled: isAuthenticated,
     staleTime: Number.POSITIVE_INFINITY,
     refetchOnWindowFocus: false,
-  });
-  useEffect(() => {
-    console.log(`-----------------------------`);
-    console.log(layouts, widgetStates);
-    console.log(`-----------------------------`);
   });
 
   useEffect(() => {
@@ -59,7 +66,9 @@ export default function GridLayout({ isAuthenticated }: { isAuthenticated: boole
   if (isAuthenticated && error) return <div>Error: {error.message}</div>;
   if ((isAuthenticated && isLoading) || (isLoading && !queryData)) return <CloudLoader />;
 
-  const onLayoutChange = (_currentLayout: Layout[], allLayouts: Layouts) => {
+  // NOTE: v1 `Layout` (single item) is now `LayoutItem`.
+  // v1 `Layout[]` is now `Layout`. v1 `Layouts` is now `ResponsiveLayouts`.
+  const onLayoutChange = (_currentLayout: Layout, allLayouts: ResponsiveLayouts<BreakpointT>) => {
     if (droppingItem) return;
     setLayouts(allLayouts);
   };
@@ -78,10 +87,10 @@ export default function GridLayout({ isAuthenticated }: { isAuthenticated: boole
     setWidgetStates(widgetStates);
   };
 
-  const onDrop = (layout: Layout[]) => {
+  const onDrop = (layout: Layout) => {
     if (!droppingItem || droppingItem.i === '__dropping-elem__') return;
 
-    const newLayout = structuredClone(layout);
+    const newLayout = structuredClone(layout) as LayoutItem[];
     newLayout[newLayout.length - 1].isDraggable = undefined;
 
     setLayouts({ [currentBreakpoint]: newLayout });
@@ -89,54 +98,51 @@ export default function GridLayout({ isAuthenticated }: { isAuthenticated: boole
     setDroppingItem(undefined);
   };
 
-  const onResizeStop = (layout: Layout[]) => {
-    setLayouts({ [currentBreakpoint]: layout });
+  const onResizeStop = (layout: Layout) => {
+    setLayouts({ [currentBreakpoint]: layout as LayoutItem[] });
   };
 
   return (
     <>
-      <ResponsiveReactGridLayout
+      <ResponsiveGridLayout<BreakpointT>
+        width={5000}
         rowHeight={1}
         maxRows={Number.POSITIVE_INFINITY}
-        width={5000}
         autoSize={true}
         cols={{ lg: 168, md: 160, sm: 152, xs: 144, xxs: 136 }}
         breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
         containerPadding={[8, 8]}
         margin={[8, 8]}
         layouts={layouts}
-        measureBeforeMount={false}
-        useCSSTransforms={true}
-        compactType={compactType}
-        draggableCancel={'#remove, #lock-toggle, #fit-widget'}
-        draggableHandle={'#react-grid-item-handle'}
-        preventCollision={!compactType}
+        compactor={compactor}
+        dragConfig={{
+          enabled: !isLayoutLocked,
+          handle: '#react-grid-item-handle',
+          cancel: '#remove, #lock-toggle, #fit-widget',
+        }}
+        resizeConfig={{
+          enabled: !isLayoutLocked,
+          handleComponent: (
+            <div className='react-resizable-handle absolute right-0 bottom-0 size-3! cursor-se-resize bg-none! p-0! after:hidden!'>
+              <svg xmlns='http://www.w3.org/2000/svg' viewBox='5 5 24 24'>
+                <title>Resize Handle</title>
+                <g fill='none' stroke='hsl(var(--primary))' strokeWidth={2}>
+                  <path d='M10 20h10V10'></path>
+                  <path d='M12 17h5v-5'></path>
+                </g>
+              </svg>
+            </div>
+          ),
+        }}
+        dropConfig={{ enabled: true }}
+        droppingItem={droppingItem}
         onLayoutChange={onLayoutChange}
         onBreakpointChange={onBreakpointChange}
-        allowOverlap={false}
         onDrop={onDrop}
-        transformScale={1}
         onResizeStop={onResizeStop}
-        isBounded={false}
-        droppingItem={droppingItem}
-        isDraggable={!isLayoutLocked}
-        isResizable={!isLayoutLocked}
-        isDroppable={true}
         className={`bg-primary/75 h-full! w-[5000px] rounded-md overflow-x-hidden`}
-        verticalCompact={undefined}
-        resizeHandle={
-          <div className='react-resizable-handle absolute right-0 bottom-0 size-3! cursor-se-resize bg-none! p-0! after:hidden!'>
-            <svg xmlns='http://www.w3.org/2000/svg' viewBox='5 5 24 24'>
-              <title>Resize Handle</title>
-              <g fill='none' stroke='hsl(var(--primary))' strokeWidth={2}>
-                <path d='M10 20h10V10'></path>
-                <path d='M12 17h5v-5'></path>
-              </g>
-            </svg>
-          </div>
-        }
       >
-        {layouts[currentBreakpoint].map((item: Layout) => {
+        {layouts[currentBreakpoint].map((item: LayoutItem) => {
           const isWidgetLocked = item.static || isLayoutLocked;
           return (
             <div key={item.i}>
@@ -226,7 +232,7 @@ export default function GridLayout({ isAuthenticated }: { isAuthenticated: boole
             </div>
           );
         })}
-      </ResponsiveReactGridLayout>
+      </ResponsiveGridLayout>
       <FloatingDock />
       <ScrollBar orientation='horizontal' />
     </>

@@ -38,3 +38,7 @@ next-env.d.ts
 
 # by me
 /dev
+.aider*
+
+.env.*
+!.env.example

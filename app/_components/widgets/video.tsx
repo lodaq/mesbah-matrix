@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, YoutubeIcon } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useLayoutEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -76,7 +76,7 @@ export default function Video({ id }: { id: string }) {
                 <FormItem>
                   <FormLabel className='font-medium text-gray-700'>Video URL</FormLabel>
                   <div className='relative'>
-                    <YoutubeIcon className='absolute top-3 left-3 text-gray-400' />
+                    {/**<YoutubeIcon className='absolute top-3 left-3 text-gray-400' /> **/}
                     <FormControl>
                       <Input
                         {...field}

@@ -3,7 +3,13 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Pencil, Trash } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type Layout, Responsive, WidthProvider } from 'react-grid-layout';
+import {
+  type Layout,
+  type LayoutItem,
+  ResponsiveGridLayout,
+  getCompactor,
+  useContainerWidth,
+} from 'react-grid-layout';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,7 +77,10 @@ const websiteFormSchema = z.object({
   url: z.string().url('Must be a valid URL').min(1, 'Website URL is required'),
 });
 
-const ResponsiveReactGridLayout = WidthProvider(Responsive);
+// No compaction, no overlap, no collision-blocking — matches the old
+// verticalCompact={false} / allowOverlap={false} / preventCollision={false}.
+// This is static (doesn't depend on props/state), so it lives outside the component.
+const compactor = getCompactor(null, false, false);
 
 export default function PortalioPage() {
   const {
@@ -88,44 +97,35 @@ export default function PortalioPage() {
     setReOrder,
   } = usePortalioStore();
 
+  // Replaces WidthProvider. measureBeforeMount: false matches the old default.
+  const { width, containerRef } = useContainerWidth({ measureBeforeMount: false });
+
   // Slide form with Zod validation
   const addSlideForm = useForm<z.infer<typeof slideFormSchema>>({
     resolver: zodResolver(slideFormSchema),
-    defaultValues: {
-      name: '',
-    },
+    defaultValues: { name: '' },
   });
+
   const editSlideForm = useForm<z.infer<typeof slideFormSchema>>({
     resolver: zodResolver(slideFormSchema),
-    defaultValues: {
-      name: '',
-    },
+    defaultValues: { name: '' },
   });
 
   // Folder form with Zod validation
   const addFolderForm = useForm<z.infer<typeof folderFormSchema>>({
     resolver: zodResolver(folderFormSchema),
-    defaultValues: {
-      name: '',
-      iconUrl: '',
-    },
+    defaultValues: { name: '', iconUrl: '' },
   });
+
   const editFolderForm = useForm<z.infer<typeof folderFormSchema>>({
     resolver: zodResolver(folderFormSchema),
-    defaultValues: {
-      name: '',
-      iconUrl: '',
-    },
+    defaultValues: { name: '', iconUrl: '' },
   });
 
   // Website form with Zod validation
   const addWebsiteForm = useForm<z.infer<typeof websiteFormSchema>>({
     resolver: zodResolver(websiteFormSchema),
-    defaultValues: {
-      name: '',
-      iconUrl: '',
-      url: '',
-    },
+    defaultValues: { name: '', iconUrl: '', url: '' },
   });
 
   // Form submit handlers
@@ -167,6 +167,7 @@ export default function PortalioPage() {
     // if (currentSlideId) console.log(slides[currentSlideId as string].name);
     // console.log(reOrder);
   });
+
   const swiper = useSwiper();
 
   useEffect(() => {
@@ -221,12 +222,12 @@ export default function PortalioPage() {
                   </Button>
                 </div>
               </div>
-
               <ScrollArea className='h-full rounded-md'>
-                <ResponsiveReactGridLayout
+                <ResponsiveGridLayout
+                  innerRef={containerRef}
+                  width={width}
                   rowHeight={1}
                   maxRows={Number.POSITIVE_INFINITY}
-                  width={5000}
                   autoSize={true}
                   cols={{
                     lg: 555,
@@ -239,26 +240,28 @@ export default function PortalioPage() {
                   margin={[8, 8]}
                   breakpoint={currentBreakpoint}
                   layouts={slides[slideId].layouts}
-                  measureBeforeMount={false}
-                  useCSSTransforms={true}
-                  allowOverlap={false}
-                  transformScale={1}
-                  isBounded={false}
-                  isDroppable={false}
-                  isDraggable={true}
-                  isResizable={false}
+                  compactor={compactor}
+                  dragConfig={{
+                    enabled: true,
+                    bounded: false,
+                    cancel: 'no-dragging',
+                  }}
+                  resizeConfig={{ enabled: false }}
                   className={`bg-primary/75 h-full min-h-[calc(100vh-16px)] w-[5000px] rounded-md`}
-                  verticalCompact={false}
-                  draggableCancel='no-dragging'
-                  preventCollision={false}
                   onLayoutChange={(e) => {
+                    // NOTE: this mutates items without returning a new layout or
+                    // calling setLayouts, so — same as before the migration — it
+                    // doesn't actually persist h/w back to the store. v2 treats
+                    // callback params as immutable by convention, so if you want
+                    // this to really take effect, build a new array and call
+                    // your store's setter with it instead of mutating in place.
                     e.map((item) => {
                       item.h = 10;
                       item.w = 10;
                     });
                   }}
                 >
-                  {slides[slideId].layouts[currentBreakpoint].map((item: Layout) => {
+                  {slides[slideId].layouts[currentBreakpoint].map((item: LayoutItem) => {
                     const type = item.i.split('|')[0];
                     if (type === 'folder') {
                       const state = slidesStates[item.i] as FolderStateT;
@@ -290,22 +293,13 @@ export default function PortalioPage() {
                       </div>
                     );
                   })}
-                </ResponsiveReactGridLayout>
-
+                </ResponsiveGridLayout>
                 <ScrollBar orientation='horizontal' />
               </ScrollArea>
             </SwiperSlide>
           ))}
         </Swiper>
       )}
-
-      {/* <Folder */}
-      {/*   name={item.i.split('|')[1]} */}
-      {/*   icon={item.i.split('|')[2]} */}
-      {/*   websites={item.i.split('|')[3]} */}
-      {/*   className="bg-red-500" */}
-      {/*   iconClassName="bg-red-500" */}
-      {/* /> */}
 
       {/* add Slide Dialog */}
       <Dialog open={addSlideDialogOpen} onOpenChange={setAddSlideDialogOpen}>
@@ -314,7 +308,6 @@ export default function PortalioPage() {
             <DialogTitle>Add Slide</DialogTitle>
             <DialogDescription>Enter the name of the slide you want to add.</DialogDescription>
           </DialogHeader>
-
           <Form {...addSlideForm}>
             <form onSubmit={addSlideForm.handleSubmit(onAddSlideSubmit)} className='space-y-4'>
               <FormField
@@ -330,7 +323,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <DialogFooter>
                 <Button type='submit'>Add Slide</Button>
               </DialogFooter>
@@ -346,7 +338,6 @@ export default function PortalioPage() {
             <DialogTitle>Edit Slide</DialogTitle>
             <DialogDescription>Enter a new name for the slide.</DialogDescription>
           </DialogHeader>
-
           <Form {...editSlideForm}>
             <form onSubmit={editSlideForm.handleSubmit(onEditSlideSubmit)} className='space-y-4'>
               <FormField
@@ -362,7 +353,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <DialogFooter>
                 <Button type='submit'>Edit Slide</Button>
               </DialogFooter>
@@ -372,7 +362,6 @@ export default function PortalioPage() {
       </Dialog>
 
       {/* delete Slide Dialog */}
-
       <AlertDialog open={deleteSlideDialogOpen} onOpenChange={setDeleteSlideDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -401,7 +390,6 @@ export default function PortalioPage() {
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>Enter a name and icon URL for the new folder.</DialogDescription>
           </DialogHeader>
-
           <Form {...addFolderForm}>
             <form onSubmit={addFolderForm.handleSubmit(onAddFolderSubmit)} className='space-y-4'>
               <FormField
@@ -417,7 +405,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={addFolderForm.control}
                 name='iconUrl'
@@ -431,7 +418,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <DialogFooter>
                 <Button type='submit'>Create Folder</Button>
               </DialogFooter>
@@ -447,7 +433,6 @@ export default function PortalioPage() {
             <DialogTitle>Add Website</DialogTitle>
             <DialogDescription>Enter details for the website you want to add.</DialogDescription>
           </DialogHeader>
-
           <Form {...addWebsiteForm}>
             <form onSubmit={addWebsiteForm.handleSubmit(onAddWebsiteSubmit)} className='space-y-4'>
               <FormField
@@ -463,7 +448,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={addWebsiteForm.control}
                 name='iconUrl'
@@ -477,7 +461,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={addWebsiteForm.control}
                 name='url'
@@ -491,7 +474,6 @@ export default function PortalioPage() {
                   </FormItem>
                 )}
               />
-
               <DialogFooter>
                 <Button type='submit'>Add Website</Button>
               </DialogFooter>
@@ -499,6 +481,7 @@ export default function PortalioPage() {
           </Form>
         </DialogContent>
       </Dialog>
+
       {/* The Dropdown Menu */}
       <div className='fc absolute right-4 bottom-4 z-10 gap-2'>
         <Toggle
@@ -510,7 +493,6 @@ export default function PortalioPage() {
         >
           reorder
         </Toggle>
-
         <Button>Save</Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
